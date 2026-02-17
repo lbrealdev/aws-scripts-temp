@@ -40,7 +40,7 @@ in_block {
     if (length(display_file) > 40) display_file = substr(display_file, length(display_file)-39)
     if (length(key) > 50) key = substr(key, 1, 47) "..."
     
-    printf "%-40s %-50s %-50s %-15s\n", display_file, bucket, key
+    printf "%-40s %-50s %-50s\n", display_file, bucket, key
     in_block=0; bucket=""; key=""
 }
 ' {} + 2>/dev/null; then
