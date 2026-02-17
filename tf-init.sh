@@ -195,17 +195,48 @@ EOF
 
     # Run terraform init
     print_header "Initializing Terraform"
-    
+
     if terraform -chdir="$DIR_NAME" init -no-color; then
         echo ""
         print_success "Terraform initialized successfully!"
-        echo ""
-        echo -e "${GREEN}Your Terraform workspace is ready in:${NC} ${BOLD}$DIR_NAME/${NC}"
     else
         echo ""
         print_error "Terraform initialization failed"
         exit 1
     fi
+
+    # Pull existing state if available
+    print_header "Pulling Terraform State"
+
+    local TIMESTAMP
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    local STATE_FILE="$DIR_NAME/state_${TIMESTAMP}.json"
+
+    if terraform -chdir="$DIR_NAME" state pull -no-color > "$STATE_FILE" 2>&1; then
+        # Check if state file has content (not empty)
+        if [[ -s "$STATE_FILE" ]]; then
+            print_success "State pulled successfully: state_${TIMESTAMP}.json"
+        else
+            # Empty state - new backend
+            rm -f "$STATE_FILE"
+            print_info "No existing state found (new backend)"
+        fi
+    else
+        # State pull failed - check if it's because state doesn't exist
+        if grep -q "Failed to load state\|No state found\|state snapshot is nil" "$STATE_FILE" 2>/dev/null; then
+            rm -f "$STATE_FILE"
+            print_info "No existing state found (new backend)"
+        else
+            # Real error (auth, network, etc.)
+            print_error "Failed to pull state"
+            cat "$STATE_FILE"
+            rm -f "$STATE_FILE"
+            exit 1
+        fi
+    fi
+
+    echo ""
+    echo -e "${GREEN}Your Terraform workspace is ready in:${NC} ${BOLD}$DIR_NAME/${NC}"
 }
 
 # Execute main function

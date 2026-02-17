@@ -1,2 +1,20 @@
 # IDEs and editors
 .idea/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform state directories created by tf-init.sh
+state_*.json
