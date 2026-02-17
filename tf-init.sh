@@ -21,10 +21,9 @@ usage() {
 check_aws_cli() {
     if ! command -v aws &> /dev/null; then
         echo "Error: aws-cli is not installed or not in PATH"
-        echo "Please install AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
         exit 1
     fi
-    echo "AWS CLI found: $(aws --version)"
+    echo "AWS CLI found: $(aws --version | cut -d' ' -f1)"
 }
 
 # Function to verify AWS authentication
@@ -39,7 +38,6 @@ verify_aws_auth() {
         exit 1
     fi
     echo "AWS authentication verified"
-    aws sts get-caller-identity
 }
 
 # Function to parse command line arguments
