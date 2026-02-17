@@ -7,13 +7,14 @@ set -euo pipefail
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 --bucket <bucket-name> --key <state-key>"
+    echo "Usage: $0 --bucket <bucket-name> --key <state-key> [--region <aws-region>]"
     echo ""
     echo "Required:"
     echo "  --bucket <name>     S3 bucket name for Terraform state"
     echo "  --key <path>        Path to state file in bucket (e.g., terraform.tfstate)"
     echo ""
     echo "Optional:"
+    echo "  --region <region>   AWS region (default: us-east-1)"
     echo "  --help, -h          Show this help message"
 }
 
@@ -23,7 +24,16 @@ check_aws_cli() {
         echo "Error: aws-cli is not installed or not in PATH"
         exit 1
     fi
-    echo "AWS CLI found: $(aws --version | cut -d' ' -f1)"
+    echo "AWS CLI found: $(aws --version)"
+}
+
+# Function to check if Terraform is installed
+check_terraform() {
+    if ! command -v terraform &> /dev/null; then
+        echo "Error: Terraform is not installed or not in PATH"
+        exit 1
+    fi
+    echo "Terraform found: $(terraform --version | head -n1)"
 }
 
 # Function to verify AWS authentication
@@ -41,11 +51,12 @@ verify_aws_auth() {
 }
 
 # Function to parse command line arguments
-# Sets global variables: BUCKET, STATE_KEY
+# Sets global variables: BUCKET, STATE_KEY, REGION
 parse_args() {
     # Reset global variables
     BUCKET=""
     STATE_KEY=""
+    REGION=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -55,6 +66,10 @@ parse_args() {
                 ;;
             --state|--key)
                 STATE_KEY="$2"
+                shift 2
+                ;;
+            --region)
+                REGION="$2"
                 shift 2
                 ;;
             --help|-h)
@@ -68,6 +83,11 @@ parse_args() {
                 ;;
         esac
     done
+
+    # Set default region if not provided
+    if [[ -z "${REGION:-}" ]]; then
+        REGION="eu-west-2"
+    fi
 }
 
 # Main function
@@ -89,6 +109,7 @@ main() {
     # Check prerequisites
     check_aws_cli
     verify_aws_auth
+    check_terraform
 
     # Create isolated directory based on state key
     # Replace slashes with underscores for directory name
@@ -105,6 +126,7 @@ terraform {
   backend "s3" {
     bucket = "${BUCKET}"
     key    = "${STATE_KEY}"
+    region = "${REGION}"
   }
 }
 EOF
@@ -112,6 +134,7 @@ EOF
     echo "Backend configuration created:"
     echo "  Bucket: $BUCKET"
     echo "  Key: $STATE_KEY"
+    echo "  Region: $REGION"
     echo "  Directory: $DIR_NAME"
 
     # Run terraform init
