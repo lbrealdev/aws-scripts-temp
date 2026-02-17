@@ -16,8 +16,8 @@ if [[ ! -d "$SEARCH_DIR" ]]; then
 fi
 
 # Print table header
-printf "%-40s %-30s %-50s %-15s\n" "FILE" "BUCKET" "KEY" "REGION"
-printf "%-40s %-30s %-50s %-15s\n" "----" "------" "---" "------"
+printf "%-40s %-50s %-50s %-15s\n" "FILE" "BUCKET" "KEY" "REGION"
+printf "%-40s %-50s %-50s %-15s\n" "----" "------" "---" "------"
 
 # Find and parse terraform files
 if ! find "$SEARCH_DIR" -name "*.tf" -type f -exec awk '
@@ -28,14 +28,21 @@ in_block {
     if (match($0, /region[[:space:]]*=[[:space:]]*"([^"]+)"/, arr)) region=arr[1]
 }
 /^\s*}\s*$/ && in_block {
-    # Truncate long values for display
-    display_file = file
-    if (length(display_file) > 40) display_file = substr(display_file, 1, 37) "..."
-    if (length(bucket) > 30) bucket = substr(bucket, 1, 27) "..."
+    # Get parent directory and filename only
+    if (match(file, /\/+[^\/]+\/+[^\/]+$/, arr)) {
+        display_file = substr(file, RSTART+1)
+    } else if (match(file, /\/+[^\/]+$/, arr)) {
+        display_file = substr(file, RSTART+1)
+    } else {
+        display_file = file
+    }
+    
+    # Truncate long values for display (except bucket)
+    if (length(display_file) > 40) display_file = substr(display_file, length(display_file)-39)
     if (length(key) > 50) key = substr(key, 1, 47) "..."
     if (length(region) > 15) region = substr(region, 1, 12) "..."
     
-    printf "%-40s %-30s %-50s %-15s\n", display_file, bucket, key, region
+    printf "%-40s %-50s %-50s %-15s\n", display_file, bucket, key, region
     in_block=0; bucket=""; key=""; region=""
 }
 ' {} + 2>/dev/null; then
