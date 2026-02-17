@@ -14,7 +14,7 @@ usage() {
     echo "  --key <path>        Path to state file in bucket (e.g., terraform.tfstate)"
     echo ""
     echo "Optional:"
-    echo "  --region <region>   AWS region (default: us-east-1)"
+    echo "  --region <region>   AWS region (default: eu-west-2)"
     echo "  --help, -h          Show this help message"
 }
 
