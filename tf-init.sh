@@ -5,10 +5,6 @@
 
 set -euo pipefail
 
-# Default values
-BUCKET=""
-STATE_KEY=""
-
 # Function to display usage information
 usage() {
     echo "Usage: $0 --bucket <bucket-name> --key <state-key>"
@@ -46,55 +42,61 @@ verify_aws_auth() {
     aws sts get-caller-identity
 }
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --bucket)
-            BUCKET="$2"
-            shift 2
-            ;;
-        --state|--key)
-            STATE_KEY="$2"
-            shift 2
-            ;;
-        --help|-h)
-            usage
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            usage
-            exit 1
-            ;;
-    esac
-done
+# Main function
+main() {
+    # Default values
+    local BUCKET=""
+    local STATE_KEY=""
 
-# Validate required arguments
-if [[ -z "$BUCKET" ]]; then
-    echo "Error: --bucket is required"
-    exit 1
-fi
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --bucket)
+                BUCKET="$2"
+                shift 2
+                ;;
+            --state|--key)
+                STATE_KEY="$2"
+                shift 2
+                ;;
+            --help|-h)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                usage
+                exit 1
+                ;;
+        esac
+    done
 
-if [[ -z "$STATE_KEY" ]]; then
-    echo "Error: --key is required"
-    exit 1
-fi
+    # Validate required arguments
+    if [[ -z "$BUCKET" ]]; then
+        echo "Error: --bucket is required"
+        exit 1
+    fi
 
-# Check prerequisites
-check_aws_cli
-verify_aws_auth
+    if [[ -z "$STATE_KEY" ]]; then
+        echo "Error: --key is required"
+        exit 1
+    fi
 
-# Create isolated directory based on state key
-# Replace slashes with underscores for directory name
-DIR_NAME=$(echo "$STATE_KEY" | tr '/' '_')
-mkdir -p "$DIR_NAME"
-cd "$DIR_NAME"
+    # Check prerequisites
+    check_aws_cli
+    verify_aws_auth
 
-echo "Working in isolated directory: $DIR_NAME"
+    # Create isolated directory based on state key
+    # Replace slashes with underscores for directory name
+    local DIR_NAME=$(echo "$STATE_KEY" | tr '/' '_')
+    mkdir -p "$DIR_NAME"
+    cd "$DIR_NAME"
 
-# Generate backend.tf
-echo "Generating backend.tf..."
-cat > backend.tf << EOF
+    echo "Working in isolated directory: $DIR_NAME"
+
+    # Generate backend.tf
+    echo "Generating backend.tf..."
+    cat > backend.tf << EOF
 terraform {
   backend "s3" {
     bucket = "${BUCKET}"
@@ -103,15 +105,19 @@ terraform {
 }
 EOF
 
-echo "Backend configuration created:"
-echo "  Bucket: $BUCKET"
-echo "  Key: $STATE_KEY"
-echo "  Directory: $DIR_NAME"
+    echo "Backend configuration created:"
+    echo "  Bucket: $BUCKET"
+    echo "  Key: $STATE_KEY"
+    echo "  Directory: $DIR_NAME"
 
-# Run terraform init
-echo ""
-echo "Running terraform init..."
-terraform init
+    # Run terraform init
+    echo ""
+    echo "Running terraform init..."
+    terraform init
 
-echo ""
-echo "Terraform initialized successfully in $DIR_NAME/"
+    echo ""
+    echo "Terraform initialized successfully in $DIR_NAME/"
+}
+
+# Execute main function
+main "$@"
