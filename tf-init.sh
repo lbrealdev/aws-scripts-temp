@@ -42,13 +42,13 @@ verify_aws_auth() {
     aws sts get-caller-identity
 }
 
-# Main function
-main() {
-    # Default values
-    local BUCKET=""
-    local STATE_KEY=""
+# Function to parse command line arguments
+# Sets global variables: BUCKET, STATE_KEY
+parse_args() {
+    # Reset global variables
+    BUCKET=""
+    STATE_KEY=""
 
-    # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
             --bucket)
@@ -70,14 +70,20 @@ main() {
                 ;;
         esac
     done
+}
+
+# Main function
+main() {
+    # Parse arguments (sets BUCKET and STATE_KEY)
+    parse_args "$@"
 
     # Validate required arguments
-    if [[ -z "$BUCKET" ]]; then
+    if [[ -z "${BUCKET:-}" ]]; then
         echo "Error: --bucket is required"
         exit 1
     fi
 
-    if [[ -z "$STATE_KEY" ]]; then
+    if [[ -z "${STATE_KEY:-}" ]]; then
         echo "Error: --key is required"
         exit 1
     fi
